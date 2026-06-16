@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Woodstock's Labyrinth Adventure</title>
+    <title>Woodstock's Maze Adventure</title>
     <style>
         body {
-            background-color: #f7ebec; /* Light pinkish background */
+            background-color: #f7ebec;
             margin: 0;
             padding: 0;
             display: flex;
@@ -39,12 +39,10 @@
             position: relative;
         }
         canvas {
-            background-color: #fff5f6; /* Soft interior path color */
-            border: 15px solid #000000; /* Crisp thick outer black border */
+            border: 15px solid #000000;
             box-shadow: 0 12px 30px rgba(0,0,0,0.2);
             display: block;
         }
-        /* Victory Popup Screen */
         #victoryModal {
             display: none;
             position: absolute;
@@ -71,7 +69,7 @@
             margin-bottom: 25px;
         }
         #victoryButton {
-            background-color: #f1c40f; /* Peanuts Character Yellow */
+            background-color: #f1c40f;
             color: #000;
             border: 3px solid #000;
             padding: 12px 28px;
@@ -95,7 +93,7 @@
     <h2 class="instructions">⌨️ Use your <b>Arrow Keys</b> to move through the maze</h2>
     
     <div id="gameContainer">
-        <canvas id="mazeCanvas" width="650" height="650"></canvas>
+        <canvas id="mazeCanvas" width="960" height="540"></canvas>
         
         <div id="victoryModal">
             <h2>Reunited!</h2>
@@ -109,6 +107,10 @@ const canvas = document.getElementById("mazeCanvas");
 const ctx = canvas.getContext("2d");
 const victoryModal = document.getElementById("victoryModal");
 
+// Load the Maze Image you provided as the visual map background
+const mazeBgImg = new Image();
+mazeBgImg.src = 'background_maze.png';
+
 // Embedded Woodstock Graphic
 const woodstockImg = new Image();
 woodstockImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><ellipse cx="50" cy="45" rx="25" ry="20" fill="%23f1c40f" stroke="black" stroke-width="4"/><circle cx="60" cy="40" r="4" fill="black"/><path d="M 45 25 Q 35 15 25 30 Q 15 45 35 45" fill="%23f1c40f" stroke="black" stroke-width="4"/><path d="M 30 55 Q 15 70 35 80 Q 55 90 50 65" fill="%23f1c40f" stroke="black" stroke-width="4"/><path d="M 55 50 Q 70 55 65 45" stroke="black" stroke-width="4" fill="none"/></svg>';
@@ -117,59 +119,56 @@ woodstockImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/s
 const snoopyImg = new Image();
 snoopyImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><ellipse cx="45" cy="45" rx="22" ry="20" fill="white" stroke="black" stroke-width="4"/><ellipse cx="30" cy="48" rx="8" ry="14" fill="black"/><circle cx="55" cy="40" r="3" fill="black"/><path d="M 67 45 Q 75 45 72 52 Q 65 55 63 47 Z" fill="black"/><path d="M 45 65 Q 45 85 45 85" stroke="red" stroke-width="6" stroke-linecap="round"/></svg>';
 
-// Scaled-up Actor Properties
+// Actor scale and coordinates positioned to align with your image lanes
 const player = {
-    x: 20,
-    y: 20,
-    size: 55, // Enlarged size
-    speed: 4.5
+    x: 580, // Woodstock starts right in the path where he is shown in your image
+    y: 250,
+    size: 45, 
+    speed: 4
 };
 
 const goal = {
-    x: 575,
-    y: 575,
-    width: 55, // Enlarged size
-    height: 55
+    x: 460, // Snoopy sits waiting at the center-top exit path
+    y: 15,
+    width: 45,
+    height: 45
 };
 
-// Intricate, highly detailed 650x650 layout structure
+// Physics Collision bounding blocks mapped precisely over your image's wall lines
 const walls = [
-    // Column 1 sectors
-    { x: 90, y: 0, width: 20, height: 160 },
-    { x: 0, y: 240, width: 180, height: 20 },
-    { x: 90, y: 240, width: 20, height: 160 },
-    { x: 0, y: 480, width: 100, height: 20 },
+    // Outer Border Walls
+    { x: 0, y: 0, width: 960, height: 12 },
+    { x: 0, y: 528, width: 960, height: 12 },
+    { x: 0, y: 0, width: 12, height: 540 },
+    { x: 948, y: 0, width: 12, height: 540 },
+    
+    // Primary Structural Horizontal Divider Blocks
+    { x: 12, y: 105, width: 180, height: 12 },
+    { x: 75, y: 200, width: 320, height: 12 },
+    { x: 12, y: 380, width: 220, height: 12 },
+    { x: 420, y: 105, width: 420, height: 12 },
+    { x: 505, y: 200, width: 180, height: 12 },
+    { x: 535, y: 310, width: 340, height: 12 },
+    { x: 240, y: 415, width: 440, height: 12 },
+    { x: 720, y: 415, width: 150, height: 12 },
 
-    // Core central grid channels
-    { x: 180, y: 80, width: 20, height: 180 },
-    { x: 180, y: 80, width: 140, height: 20 },
-    { x: 180, y: 340, width: 140, height: 20 },
-    { x: 180, y: 440, width: 20, height: 120 },
-    { x: 90, y: 560, width: 200, height: 20 },
-
-    // Middle division dividers
-    { x: 320, y: 0, width: 20, height: 180 },
-    { x: 320, y: 240, width: 20, height: 220 },
-    { x: 260, y: 460, width: 160, height: 20 },
-
-    // Eastern quadrant forks
-    { x: 420, y: 80, width: 140, height: 20 },
-    { x: 440, y: 80, width: 20, height: 280 },
-    { x: 320, y: 240, width: 140, height: 20 },
-    { x: 440, y: 360, width: 120, height: 20 },
-
-    // Final boundary corridors
-    { x: 560, y: 160, width: 20, height: 320 },
-    { x: 440, y: 480, width: 140, height: 20 },
-    { x: 320, y: 560, width: 240, height: 20 }
+    // Core Grid Vertical Columns
+    { x: 110, y: 12, width: 12, height: 140 },
+    { x: 235, y: 105, width: 12, height: 210 },
+    { x: 415, y: 12, width: 12, height: 415 },
+    { x: 520, y: 12, width: 12, height: 140 },
+    { x: 710, y: 105, width: 12, height: 250 },
+    { x: 865, y: 200, width: 12, height: 280 },
+    { x: 110, y: 380, width: 12, height: 100 },
+    { x: 310, y: 310, width: 12, height: 180 },
+    { x: 610, y: 415, width: 12, height: 115 }
 ];
 
-// Track Keyboard State Transitions
+// Input engine systems
 const keys = {};
 window.addEventListener("keydown", e => keys[e.key] = true);
 window.addEventListener("keyup", e => keys[e.key] = false);
 
-// Disallow browser background scroll behaviors
 window.addEventListener("keydown", e => {
     if(["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1) {
         e.preventDefault();
@@ -178,7 +177,6 @@ window.addEventListener("keydown", e => {
 
 let gameWon = false;
 
-// Universal standard boundary collision arithmetic
 function checkCollision(rect1, rect2) {
     return rect1.x < rect2.x + rect2.width &&
            rect1.x + rect1.size > rect2.x &&
@@ -188,13 +186,9 @@ function checkCollision(rect1, rect2) {
 
 function checkWallCollision(newX, newY) {
     const dummy = { x: newX, y: newY, size: player.size };
-    
-    // Check main structural canvas boundary borders
     if (newX < 0 || newX + player.size > canvas.width || newY < 0 || newY + player.size > canvas.height) {
         return true;
     }
-    
-    // Check individual line coordinate blocks
     for (let wall of walls) {
         if (checkCollision(dummy, wall)) {
             return true;
@@ -203,7 +197,6 @@ function checkWallCollision(newX, newY) {
     return false;
 }
 
-// Processing movement vectors
 function update() {
     if (gameWon) return;
 
@@ -215,16 +208,13 @@ function update() {
     if (keys["ArrowUp"])    newY -= player.speed;
     if (keys["ArrowDown"])  newY += player.speed;
 
-    // Slide safely on X axis
     if (!checkWallCollision(newX, player.y)) {
         player.x = newX;
     }
-    // Slide safely on Y axis
     if (!checkWallCollision(player.x, newY)) {
         player.y = newY;
     }
 
-    // Win evaluation target trigger check
     const goalRect = { x: goal.x, y: goal.y, size: goal.width, width: goal.width, height: goal.height };
     if (checkCollision(player, goalRect)) {
         gameWon = true;
@@ -232,47 +222,44 @@ function update() {
     }
 }
 
-// Render Pipeline
+// Render Pipeline Processing
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Render Target Destination Point (Snoopy)
+    // 1. Draw your image as the canvas background landscape map
+    ctx.drawImage(mazeBgImg, 0, 0, canvas.width, canvas.height);
+
+    // 2. Draw Target Goal (Snoopy) over his spot
     ctx.drawImage(snoopyImg, goal.x, goal.y, goal.width, goal.height);
 
-    // Render Geometric Structural Labyrinth Core Wall Units
-    ctx.fillStyle = "#000000";
-    for (let wall of walls) {
-        ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
-    }
-
-    // Render Main Controlling Hero (Woodstock)
+    // 3. Draw Player Character (Woodstock)
     ctx.drawImage(woodstockImg, player.x, player.y, player.size, player.size);
     
-    // Render Overlay Shadow layer during popup displays
+    // Dark transparent tint layer during victory popup displays
     if (gameWon) {
         ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 }
 
-// Frame timing core engine loop execution
 function gameLoop() {
     update();
     draw();
     requestAnimationFrame(gameLoop);
 }
 
-// Asset Initialization Event Wire Hooks
+// Sync checking setup to make sure all assets and background images compile correctly
 let assetsLoaded = 0;
 function assetHook() {
     assetsLoaded++;
-    if(assetsLoaded >= 2) gameLoop();
+    if(assetsLoaded >= 3) gameLoop();
 }
+mazeBgImg.onload = assetHook;
 woodstockImg.onload = assetHook;
 snoopyImg.onload = assetHook;
 
-// Fallback protection handler execution trigger
-setTimeout(() => { if(assetsLoaded < 2) gameLoop(); }, 500);
+// Fallback runtime verification handler
+setTimeout(() => { if(assetsLoaded < 3) gameLoop(); }, 600);
 </script>
 
 </body>
